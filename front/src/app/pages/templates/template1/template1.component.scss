@@ -1,0 +1,84 @@
+.ng-calendar-wrapper {
+  width: 1200px;
+  max-width: 100vw;
+  height: 800px;
+  max-height: 90vh;
+}
+
+::ng-deep #event-1 {
+  z-index: 1 !important;
+  resize: vertical;
+  min-height: calc(var(--sx-week-grid-hour-height) / 2);
+}
+
+#mydiv {
+  position: absolute; /* or relative */
+  z-index: 9;
+  border: 1px solid #d3d3d3;
+  background-color: #f1f1f1;
+  text-align: center;
+  cursor: move;
+}
+
+#mydivheader {
+  cursor: move;
+}
+
+// #grid-panel {
+//   position: fixed;
+//   width: 100%;
+//   height: 100%;
+//   top: 0;
+//   left: 0;
+//   pointer-events: none;
+// }
+
+// #grid-panel * {
+//   pointer-events: auto;
+// }
+
+// .resizable {
+//   background: white;
+//   width: 100px;
+//   height: 100px;
+//   position: absolute;
+//   top: 100px;
+//   left: 100px;
+// }
+
+// .resizable .resizers{
+//   width: 100%;
+//   height: 100%;
+//   border: 3px solid #4286f4;
+//   box-sizing: border-box;
+// }
+
+// .resizable .resizers .resizer{
+//   width: 10px;
+//   height: 10px;
+//   border-radius: 50%; /*magic to turn square into circle*/
+//   background: white;
+//   border: 3px solid #4286f4;
+//   position: absolute;
+// }
+
+// .resizable .resizers .resizer.top-left {
+//   left: -5px;
+//   top: -5px;
+//   cursor: nwse-resize; /*resizer cursor*/
+// }
+// .resizable .resizers .resizer.top-right {
+//   right: -5px;
+//   top: -5px;
+//   cursor: nesw-resize;
+// }
+// .resizable .resizers .resizer.bottom-left {
+//   left: -5px;
+//   bottom: -5px;
+//   cursor: nesw-resize;
+// }
+// .resizable .resizers .resizer.bottom-right {
+//   right: -5px;
+//   bottom: -5px;
+//   cursor: nwse-resize;
+// }
