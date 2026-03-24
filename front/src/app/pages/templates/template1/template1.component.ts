@@ -1,120 +1,101 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, ChangeDetectorRef, effect } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { CalendarComponent } from "@schedule-x/angular";
 import { createCalendar, createViewWeek } from "@schedule-x/calendar";
 import '@schedule-x/theme-default/dist/index.css' // can alternatively be added in your angular.json
 import 'temporal-polyfill/global';
+
+import { UtilsService } from '../../../services/utils.service';
+
+const eventExample1 = {
+  id: 'event-1',
+  title: 'Event 1',
+  calendarId: 'event-id',
+  start: Temporal.Now.zonedDateTimeISO(),
+  end: Temporal.Now.zonedDateTimeISO().add({ hours: 1 })
+};
+
+const eventExample2 = {
+  id: 'event-2',
+  title: 'Event 2',
+  calendarId: 'event-id',
+  start: Temporal.Now.zonedDateTimeISO(),
+  end: Temporal.Now.zonedDateTimeISO().add({ hours: 1 })
+};
+
+const configCalendar: any = signal({
+  events: [eventExample1],
+  views: [createViewWeek()],
+});
 
 @Component({
   standalone: true,
   selector: 'app-template1',
   templateUrl: './template1.component.html',
   styleUrl: './template1.component.scss',
-  imports: [CalendarComponent]
+  imports: [
+    CommonModule,
+    CalendarComponent
+  ]
 })
 export class Template1Component implements OnInit {
-  protected readonly title = signal('template1-app');
+  protected readonly idCalendar = 'template1-calendar';
 
-  calendarApp = createCalendar({
-    events: [
-      {
-        id: 'event-1',
-        title: 'Event 1',
-        start: Temporal.Now.zonedDateTimeISO(),
-        end: Temporal.Now.zonedDateTimeISO().add({ hours: 1 })
-      },
-    ],
-    views: [createViewWeek()],
-  })
+  show: boolean = true;
+
+  calendarApp = createCalendar(configCalendar());
 
   keys = {
     Shift: false,
   };
 
-  constructor() {}
+  constructor(
+    private cd: ChangeDetectorRef,
+    private utilsService: UtilsService
+  ) {
+    effect(() => {
+      const config = configCalendar();
+      this.glowUpEvents(config);
+      this.update(config);
+    })
+    setTimeout(() => {
+      configCalendar.set(
+        {
+          ...configCalendar(),
+          events: [eventExample2]
+        }
+      );
+    }, 5000);
+  }
 
   ngOnInit() {
-    this.waitForElm('[data-event-id="event-1"]').then((element: any) => {
+
+  }
+
+  update(configCalendar: any) {
+    this.show = false;
+
+    this.calendarApp = createCalendar(configCalendar);
+    const calendar = document.getElementById(this.idCalendar);
+    calendar && this.calendarApp.render(calendar);
+
+    this.show = true;
+    this.cd.detectChanges();
+  }
+
+  glowUpEvents(configCalendar: any) {
+    configCalendar.events.forEach((event: any) => {
+      this.glowUpEvent(event.id);
+    });
+  }
+
+  glowUpEvent(eventId: string) {
+    this.utilsService.waitForElm(`[data-event-id="${eventId}"]`).then((element: any) => {
       element.id = element.dataset.eventId;
+      element.classList.add("custom-event-tag");
       const elementInner = element.querySelector(".sx__time-grid-event-inner");
       if (!elementInner) return;
-      this.dragElement({ element, elementInner, dragHorizontal: false });
+      this.utilsService.dragElement({ element, elementInner, dragHorizontal: false });
     });
-  }
-
-  waitForElm(selector: any) {
-    return new Promise(resolve => {
-      if (document.querySelector(selector)) {
-        return resolve(document.querySelector(selector));
-      }
-
-      const observer = new MutationObserver(mutations => {
-        if (document.querySelector(selector)) {
-          observer.disconnect();
-          resolve(document.querySelector(selector));
-        }
-      });
-
-      // If you get "parameter 1 is not of type 'Node'" error, see https://stackoverflow.com/a/77855838/492336
-      observer.observe(document.body, {
-        childList: true,
-        subtree: true
-      });
-    });
-  }
-
-  dragElement(
-    {
-      element,
-      elementInner = null,
-      dragHorizontal = true,
-      dragVertical = true
-    }:
-    {
-      element: any,
-      elementInner?: any,
-      dragHorizontal?: boolean,
-      dragVertical?: boolean
-    }
-  ) {
-    function closeDragElement() {
-      // stop moving when mouse button is released:
-      document.onmouseup = null;
-      document.onmousemove = null;
-    }
-
-    function elementDrag(e: any) {
-      console.log("🚀 ~ Template1Component ~ elementDrag ~ e:", e)
-      e = e || window.event;
-      e.preventDefault();
-      // calculate the new cursor position:
-      pos1 = pos3 - e.clientX;
-      pos2 = pos4 - e.clientY;
-      pos3 = e.clientX;
-      pos4 = e.clientY;
-      // set the element's new position:
-      if (dragVertical) element.style.top = (element.offsetTop - pos2) + "px";
-      if (dragHorizontal) element.style.left = (element.offsetLeft - pos1) + "px";
-    }
-
-    function dragMouseDown(e: any) {
-      console.log("🚀 ~ Template1Component ~ dragMouseDown ~ e:", e)
-      e = e || window.event;
-      e.preventDefault();
-      // get the mouse cursor position at startup:
-      pos3 = e.clientX;
-      pos4 = e.clientY;
-      document.onmouseup = closeDragElement;
-      // call a function whenever the cursor moves:
-      document.onmousemove = elementDrag;
-    }
-
-    var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-    if (elementInner) {
-      // if present, the header is where you move the DIV from:
-      elementInner.onmousedown = dragMouseDown;
-    } else {
-      // otherwise, move the DIV from anywhere inside the DIV:
-      element.onmousedown = dragMouseDown;
-    }
   }
 }

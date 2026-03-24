@@ -1,8 +1,10 @@
 <h2>
-    Template 1
+  Template 1
 </h2>
 
-<sx-calendar [calendarApp]="calendarApp"></sx-calendar>
+@if (show) {
+  <sx-calendar [id]="idCalendar" [calendarApp]="calendarApp"></sx-calendar>
+}
 
 <div class="hidden">
     <div id="resizable" class='resizable'>
