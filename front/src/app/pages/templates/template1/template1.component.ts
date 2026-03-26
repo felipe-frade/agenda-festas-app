@@ -95,7 +95,12 @@ export class Template1Component implements OnInit {
       element.classList.add("custom-event-tag");
       const elementInner = element.querySelector(".sx__time-grid-event-inner");
       if (!elementInner) return;
-      this.utilsService.dragElement({ element, elementInner, dragHorizontal: false });
+      this.utilsService.dragElement({ 
+        element,
+        elementInner,
+        dragHorizontal: false,
+        minHeight: 0,
+      });
     });
   }
 }

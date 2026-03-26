@@ -33,13 +33,21 @@ export class UtilsService {
       element,
       elementInner = null,
       dragHorizontal = true,
-      dragVertical = true
+      dragVertical = true,
+      minHeight,
+      maxHeight,
+      minWidth,
+      maxWidth
     }:
     {
       element: any,
       elementInner?: any,
       dragHorizontal?: boolean,
-      dragVertical?: boolean
+      dragVertical?: boolean,
+      minHeight?: number,
+      maxHeight?: number,
+      minWidth?: number,
+      maxWidth?: number
     }
   ) {
     function closeDragElement() {
@@ -49,21 +57,30 @@ export class UtilsService {
     }
 
     function elementDrag(e: any) {
-      console.log("🚀 ~ Template1Component ~ elementDrag ~ e:", e)
       e = e || window.event;
       e.preventDefault();
+
       // calculate the new cursor position:
       pos1 = pos3 - e.clientX;
       pos2 = pos4 - e.clientY;
       pos3 = e.clientX;
       pos4 = e.clientY;
+
       // set the element's new position:
-      if (dragVertical) element.style.top = (element.offsetTop - pos2) + "px";
-      if (dragHorizontal) element.style.left = (element.offsetLeft - pos1) + "px";
+      let newTop = (element.offsetTop - pos2);
+      let newLeft = (element.offsetLeft - pos1);
+
+      if (minHeight !== undefined && newTop < minHeight) newTop = minHeight;
+      if (maxHeight !== undefined && newTop > maxHeight) newTop = maxHeight;
+
+      if (minWidth !== undefined && newLeft < minWidth) newLeft = minWidth;
+      if (maxWidth !== undefined && newLeft > maxWidth) newLeft = maxWidth;
+
+      if (dragVertical) element.style.top =  `${newTop}px`;
+      if (dragHorizontal) element.style.left =  `${newLeft}px`;
     }
 
     function dragMouseDown(e: any) {
-      console.log("🚀 ~ Template1Component ~ dragMouseDown ~ e:", e)
       e = e || window.event;
       e.preventDefault();
       // get the mouse cursor position at startup:
