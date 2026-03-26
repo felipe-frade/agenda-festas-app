@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { MinMax } from '../types/default';
 
 @Injectable({
   providedIn: 'root'
@@ -34,26 +35,31 @@ export class UtilsService {
       elementInner = null,
       dragHorizontal = true,
       dragVertical = true,
-      minHeight,
-      maxHeight,
-      minWidth,
-      maxWidth
+      limitHorizontal,
+      limitVertical,
+      stepsHorizontal,
+      stepsVertical,
     }:
     {
       element: any,
       elementInner?: any,
       dragHorizontal?: boolean,
       dragVertical?: boolean,
-      minHeight?: number,
-      maxHeight?: number,
-      minWidth?: number,
-      maxWidth?: number
+      limitHorizontal?: MinMax,
+      limitVertical?: MinMax,
+      stepsHorizontal?: number,
+      stepsVertical?: number,
     }
   ) {
+    let mouseOriginX = 0;
+    let mouseOriginY = 0;
+
     function closeDragElement() {
       // stop moving when mouse button is released:
       document.onmouseup = null;
       document.onmousemove = null;
+      mouseOriginX = 0;
+      mouseOriginY = 0;
     }
 
     function elementDrag(e: any) {
@@ -66,18 +72,32 @@ export class UtilsService {
       pos3 = e.clientX;
       pos4 = e.clientY;
 
+      if (mouseOriginX === 0) mouseOriginX = e.clientX;
+      if (mouseOriginY === 0) mouseOriginY = e.clientY;
+
+      let mouseX = e.clientX - mouseOriginX;
+      let mouseY = e.clientY - mouseOriginY;
+
       // set the element's new position:
-      let newTop = (element.offsetTop - pos2);
       let newLeft = (element.offsetLeft - pos1);
+      let newTop = (element.offsetTop - pos2);
 
-      if (minHeight !== undefined && newTop < minHeight) newTop = minHeight;
-      if (maxHeight !== undefined && newTop > maxHeight) newTop = maxHeight;
+      if (stepsHorizontal) {
+        newLeft = +((mouseX / stepsHorizontal).toFixed(0)) * stepsHorizontal;
+      }
 
-      if (minWidth !== undefined && newLeft < minWidth) newLeft = minWidth;
-      if (maxWidth !== undefined && newLeft > maxWidth) newLeft = maxWidth;
+      if (stepsVertical) {
+        newTop = +((mouseY / stepsVertical).toFixed(0)) * stepsVertical;
+      }
 
-      if (dragVertical) element.style.top =  `${newTop}px`;
+      if (limitHorizontal?.min !== undefined && newLeft < limitHorizontal?.min) newLeft = limitHorizontal?.min;
+      if (limitHorizontal?.max !== undefined && newLeft > limitHorizontal?.max) newLeft = limitHorizontal?.max;
+      
+      if (limitVertical?.min !== undefined && newTop < limitVertical?.min) newTop = limitVertical?.min;
+      if (limitVertical?.max !== undefined && newTop > limitVertical?.max) newTop = limitVertical?.max;
+
       if (dragHorizontal) element.style.left =  `${newLeft}px`;
+      if (dragVertical) element.style.top =  `${newTop}px`;
     }
 
     function dragMouseDown(e: any) {

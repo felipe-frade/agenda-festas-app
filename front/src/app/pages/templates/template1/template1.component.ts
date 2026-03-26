@@ -58,14 +58,14 @@ export class Template1Component implements OnInit {
       this.glowUpEvents(config);
       this.update(config);
     })
-    setTimeout(() => {
-      configCalendar.set(
-        {
-          ...configCalendar(),
-          events: [eventExample2]
-        }
-      );
-    }, 5000);
+    // setTimeout(() => {
+    //   configCalendar.set(
+    //     {
+    //       ...configCalendar(),
+    //       events: [eventExample2]
+    //     }
+    //   );
+    // }, 5000);
   }
 
   ngOnInit() {
@@ -98,8 +98,9 @@ export class Template1Component implements OnInit {
       this.utilsService.dragElement({ 
         element,
         elementInner,
-        dragHorizontal: false,
-        minHeight: 0,
+        // dragHorizontal: false,
+        // limitVertical: { min: 0 },
+        stepsHorizontal: element.offsetWidth + 0.5
       });
     });
   }
