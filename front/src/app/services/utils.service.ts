@@ -1,124 +1,205 @@
 import { Injectable } from '@angular/core';
 import { MinMax } from '../types/default';
 
+interface DragOptions {
+  element: HTMLElement;
+  elementInner?: HTMLElement | null;
+
+  dragHorizontal?: boolean;
+  dragVertical?: boolean;
+
+  limitHorizontal?: MinMax;
+  limitVertical?: MinMax;
+
+  stepsHorizontal?: number;
+  stepsVertical?: number;
+}
+
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class UtilsService {
 
-  constructor() { }
+  /*
+  |--------------------------------------------------------------------------
+  | WAIT FOR ELEMENT
+  |--------------------------------------------------------------------------
+  */
 
-  waitForElm(selector: any) {
-    return new Promise(resolve => {
-      if (document.querySelector(selector)) {
-        return resolve(document.querySelector(selector));
-      }
+  waitForElm<T extends Element = HTMLElement>(
+    selector: string
+  ): Promise<T> {
 
-      const observer = new MutationObserver(mutations => {
-        if (document.querySelector(selector)) {
-          observer.disconnect();
-          resolve(document.querySelector(selector));
-        }
+    const existingElement = document.querySelector<T>(selector);
+
+    if (existingElement) {
+      return Promise.resolve(existingElement);
+    }
+
+    return new Promise((resolve) => {
+
+      const observer = new MutationObserver(() => {
+
+        const element = document.querySelector<T>(selector);
+
+        if (!element) return;
+
+        observer.disconnect();
+        resolve(element);
+
       });
 
-      // If you get "parameter 1 is not of type 'Node'" error, see https://stackoverflow.com/a/77855838/492336
       observer.observe(document.body, {
         childList: true,
         subtree: true
       });
+
     });
+
   }
 
-  dragElement(
-    {
+
+  /*
+  |--------------------------------------------------------------------------
+  | DRAG ELEMENT
+  |--------------------------------------------------------------------------
+  */
+
+  dragElement(options: DragOptions): () => void {
+
+    const {
       element,
       elementInner = null,
+
       dragHorizontal = true,
       dragVertical = true,
+
       limitHorizontal,
       limitVertical,
+
       stepsHorizontal,
       stepsVertical,
-    }:
-    {
-      element: any,
-      elementInner?: any,
-      dragHorizontal?: boolean,
-      dragVertical?: boolean,
-      limitHorizontal?: MinMax,
-      limitVertical?: MinMax,
-      stepsHorizontal?: number,
-      stepsVertical?: number,
-    }
-  ) {
+    } = options;
+
+    let pos1 = 0;
+    let pos2 = 0;
+    let pos3 = 0;
+    let pos4 = 0;
+
     let mouseOriginX = 0;
     let mouseOriginY = 0;
 
-    function closeDragElement() {
-      // stop moving when mouse button is released:
-      document.onmouseup = null;
-      document.onmousemove = null;
-      mouseOriginX = 0;
-      mouseOriginY = 0;
-    }
 
-    function elementDrag(e: any) {
-      e = e || window.event;
-      e.preventDefault();
+    const elementDrag = (event: MouseEvent) => {
 
-      // calculate the new cursor position:
-      pos1 = pos3 - e.clientX;
-      pos2 = pos4 - e.clientY;
-      pos3 = e.clientX;
-      pos4 = e.clientY;
+      event.preventDefault();
 
-      if (mouseOriginX === 0) mouseOriginX = e.clientX;
-      if (mouseOriginY === 0) mouseOriginY = e.clientY;
+      pos1 = pos3 - event.clientX;
+      pos2 = pos4 - event.clientY;
 
-      let mouseX = e.clientX - mouseOriginX;
-      let mouseY = e.clientY - mouseOriginY;
+      pos3 = event.clientX;
+      pos4 = event.clientY;
 
-      // set the element's new position:
-      let newLeft = (element.offsetLeft - pos1);
-      let newTop = (element.offsetTop - pos2);
+      if (!mouseOriginX) mouseOriginX = event.clientX;
+      if (!mouseOriginY) mouseOriginY = event.clientY;
+
+      let newLeft = element.offsetLeft - pos1;
+      let newTop = element.offsetTop - pos2;
+
 
       if (stepsHorizontal) {
-        newLeft = +((mouseX / stepsHorizontal).toFixed(0)) * stepsHorizontal;
+        const mouseX = event.clientX - mouseOriginX;
+        newLeft = Math.round(mouseX / stepsHorizontal) * stepsHorizontal;
       }
 
       if (stepsVertical) {
-        newTop = +((mouseY / stepsVertical).toFixed(0)) * stepsVertical;
+        const mouseY = event.clientY - mouseOriginY;
+        newTop = Math.round(mouseY / stepsVertical) * stepsVertical;
       }
 
-      if (limitHorizontal?.min !== undefined && newLeft < limitHorizontal?.min) newLeft = limitHorizontal?.min;
-      if (limitHorizontal?.max !== undefined && newLeft > limitHorizontal?.max) newLeft = limitHorizontal?.max;
-      
-      if (limitVertical?.min !== undefined && newTop < limitVertical?.min) newTop = limitVertical?.min;
-      if (limitVertical?.max !== undefined && newTop > limitVertical?.max) newTop = limitVertical?.max;
 
-      if (dragHorizontal) element.style.left =  `${newLeft}px`;
-      if (dragVertical) element.style.top =  `${newTop}px`;
+      newLeft = this.#applyLimit(newLeft, limitHorizontal);
+      newTop = this.#applyLimit(newTop, limitVertical);
+
+
+      if (dragHorizontal) {
+        element.style.left = `${newLeft}px`;
+      }
+
+      if (dragVertical) {
+        element.style.top = `${newTop}px`;
+      }
+
+    };
+
+
+    const closeDragElement = () => {
+
+      document.removeEventListener('mouseup', closeDragElement);
+      document.removeEventListener('mousemove', elementDrag);
+
+      mouseOriginX = 0;
+      mouseOriginY = 0;
+
+    };
+
+
+    const dragMouseDown = (event: MouseEvent) => {
+
+      event.preventDefault();
+
+      pos3 = event.clientX;
+      pos4 = event.clientY;
+
+      document.addEventListener('mouseup', closeDragElement);
+      document.addEventListener('mousemove', elementDrag);
+
+    };
+
+
+    const dragHandle = elementInner ?? element;
+
+    dragHandle.addEventListener('mousedown', dragMouseDown);
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | RETURN CLEANUP FUNCTION (importantíssimo)
+    |--------------------------------------------------------------------------
+    */
+
+    return () => {
+
+      dragHandle.removeEventListener('mousedown', dragMouseDown);
+
+      document.removeEventListener('mouseup', closeDragElement);
+      document.removeEventListener('mousemove', elementDrag);
+
+    };
+
+  }
+
+
+  /*
+  |--------------------------------------------------------------------------
+  | PRIVATE HELPERS
+  |--------------------------------------------------------------------------
+  */
+
+  #applyLimit(value: number, limit?: MinMax): number {
+
+    if (!limit) return value;
+
+    if (limit.min !== undefined && value < limit.min) {
+      return limit.min;
     }
 
-    function dragMouseDown(e: any) {
-      e = e || window.event;
-      e.preventDefault();
-      // get the mouse cursor position at startup:
-      pos3 = e.clientX;
-      pos4 = e.clientY;
-      document.onmouseup = closeDragElement;
-      // call a function whenever the cursor moves:
-      document.onmousemove = elementDrag;
+    if (limit.max !== undefined && value > limit.max) {
+      return limit.max;
     }
 
-    var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-    if (elementInner) {
-      // if present, the header is where you move the DIV from:
-      elementInner.onmousedown = dragMouseDown;
-    } else {
-      // otherwise, move the DIV from anywhere inside the DIV:
-      element.onmousedown = dragMouseDown;
-    }
+    return value;
+
   }
 
 }
